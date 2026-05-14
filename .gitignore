@@ -1,8 +1,1 @@
-```
-# Compiled Python files
-*.pyc
-__pycache__/
-
-# Version file
-=0.3.0
-```
+Nothing should be ignored based on the provided file changes. The only modified file is `runner-gui.py`, which is a source code file and should not be added to .gitignore.

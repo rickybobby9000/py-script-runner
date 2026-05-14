@@ -4,6 +4,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 import subprocess
 import threading
 import queue
+import json
 from pathlib import Path
 
 # Path to the Python interpreter inside your virtual environment.
@@ -12,6 +13,7 @@ from pathlib import Path
 VENV_PYTHON = "/home/govinda/projects/img-gui/venv/bin/python"
 
 MAX_HISTORY = 10
+HISTORY_FILE = Path(__file__).parent / ".script_history.json"
 
 class ScriptRunnerApp:
     def __init__(self, root):
@@ -19,8 +21,11 @@ class ScriptRunnerApp:
         self.root.title(" Python Script Runner")
         self.root.geometry("650x700")
         self.dropped_file = None
-        self.history = []  # List of recently opened script paths
+        self.history = self.load_history()  # List of recently opened script paths
         self.selected_history_index = None
+        
+        # Register window close handler to save history
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # --- UI Layout ---
         self.drop_zone = tk.Label(root, text=" Drop a .py file here", relief="solid", bd=2, width=50, height=5, bg="#f0f0f0")
@@ -63,6 +68,31 @@ class ScriptRunnerApp:
         self.output_queue = queue.Queue()
         self.root.after(100, self.process_queue)
 
+    def load_history(self):
+        """Load history from JSON file."""
+        if HISTORY_FILE.exists():
+            try:
+                with open(HISTORY_FILE, 'r') as f:
+                    data = json.load(f)
+                    # Filter out files that no longer exist
+                    return [path for path in data if Path(path).exists()]
+            except (json.JSONDecodeError, IOError):
+                pass
+        return []
+
+    def save_history(self):
+        """Save current history to JSON file."""
+        try:
+            with open(HISTORY_FILE, 'w') as f:
+                json.dump(self.history, f, indent=2)
+        except IOError as e:
+            print(f"Failed to save history: {e}")
+
+    def on_close(self):
+        """Handle window close event - save history before closing."""
+        self.save_history()
+        self.root.destroy()
+
     def add_to_history(self, filepath):
         """Add a script to the history, keeping only the last MAX_HISTORY entries."""
         # Remove if already exists to avoid duplicates
@@ -75,6 +105,8 @@ class ScriptRunnerApp:
             self.history.pop()
         # Update listbox display
         self.update_history_listbox()
+        # Save to disk immediately
+        self.save_history()
 
     def update_history_listbox(self):
         """Refresh the history listbox with current history entries."""
