@@ -1,0 +1,8 @@
+```
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Version file
+=0.3.0
+```
