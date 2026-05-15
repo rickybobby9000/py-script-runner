@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 import subprocess
 import threading
@@ -34,6 +34,10 @@ class ScriptRunnerApp:
         self.drop_zone.pack(pady=15)
         self.drop_zone.drop_target_register(DND_FILES)
         self.drop_zone.dnd_bind("<<Drop>>", self.on_drop)
+
+        # File selection button
+        self.select_file_btn = tk.Button(root, text="📁 Select File", command=self.select_file, bg="#607D8B", fg="white", font=("Arial", 10))
+        self.select_file_btn.pack(pady=5)
 
         self.file_label = tk.Label(root, text="No file selected", fg="gray", font=("Arial", 10))
         self.file_label.pack()
@@ -131,20 +135,18 @@ class ScriptRunnerApp:
             self.history_listbox.insert(tk.END, display_name)
 
     def on_history_select(self, event):
-        """Handle selection of a script from history."""
+        """Handle selection of a script from history - preview only, doesn't change selected script."""
         selection = self.history_listbox.curselection()
         if selection:
             index = selection[0]
             self.selected_history_index = index
             selected_file = self.history[index]
-            self.file_label.config(text=f"📄 Selected: {Path(selected_file).name}", fg="black")
-            self.dropped_file = selected_file
-            self.run_btn.config(state="normal")
+            # Only update output text to show preview, don't change the main selected file
+            self.output_text.delete(1.0, tk.END)
+            self.output_text.insert(tk.END, f"Preview: {Path(selected_file).name}\n(Hover over or click 'Run Selected from History' to execute)\n\n")
             self.run_history_btn.config(state="normal")
             self.remove_history_btn.config(state="normal")
             self.clear_history_btn.config(state="normal")
-            self.output_text.delete(1.0, tk.END)
-            self.output_text.insert(tk.END, f"Ready to run: {Path(selected_file).name}\n\n")
         else:
             self.selected_history_index = None
             self.run_history_btn.config(state="disabled")
@@ -161,9 +163,6 @@ class ScriptRunnerApp:
             self.update_history_listbox()
             self.save_history()
             # Reset selection state
-            self.dropped_file = None
-            self.file_label.config(text="No file selected", fg="gray")
-            self.run_btn.config(state="disabled")
             self.run_history_btn.config(state="disabled")
             self.remove_history_btn.config(state="disabled")
             self.output_text.delete(1.0, tk.END)
@@ -180,9 +179,6 @@ class ScriptRunnerApp:
             self.update_history_listbox()
             self.save_history()
             # Reset selection state
-            self.dropped_file = None
-            self.file_label.config(text="No file selected", fg="gray")
-            self.run_btn.config(state="disabled")
             self.run_history_btn.config(state="disabled")
             self.remove_history_btn.config(state="disabled")
             self.clear_history_btn.config(state="disabled")
@@ -192,8 +188,27 @@ class ScriptRunnerApp:
     def run_selected_history(self):
         """Run the script selected from history."""
         if self.selected_history_index is not None and self.selected_history_index < len(self.history):
+            # Temporarily set dropped_file to run this specific script
+            original_file = self.dropped_file
             self.dropped_file = self.history[self.selected_history_index]
             self.run_script()
+            # Restore original file selection after running
+            self.dropped_file = original_file
+
+    def select_file(self):
+        """Open file dialog to select a Python script."""
+        filepath = filedialog.askopenfilename(
+            title="Select Python Script",
+            filetypes=[("Python files", "*.py"), ("All files", "*.*")],
+            initialdir=str(Path.home())
+        )
+        if filepath and filepath.endswith(".py") and Path(filepath).is_file():
+            self.dropped_file = filepath
+            self.add_to_history(self.dropped_file)
+            self.file_label.config(text=f"📄 Selected: {Path(self.dropped_file).name}", fg="black")
+            self.run_btn.config(state="normal")
+            self.output_text.delete(1.0, tk.END)
+            self.output_text.insert(tk.END, f"Ready to run: {Path(self.dropped_file).name}\n\n")
 
     def on_drop(self, event):
         raw = event.data.strip()
