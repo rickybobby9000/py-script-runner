@@ -268,21 +268,20 @@ class ScriptRunnerApp:
             filepath = result.stdout.strip()
             
             # Check if kdialog was cancelled (empty output) or failed
-            if not filepath:
-                # User cancelled - don't show fallback dialog
+            if not filepath or result.returncode != 0:
+                # User cancelled or kdialog failed - don't show fallback dialog
                 return
-            
-            if result.returncode != 0:
-                # kdialog failed for some reason, try fallback
-                raise FileNotFoundError("kdialog failed")
                 
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-            # kdialog not available, timed out, or failed - fall back to tkinter dialog
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            # kdialog not available or timed out - fall back to tkinter dialog
             filepath = filedialog.askopenfilename(
                 title="Select Python Script",
                 filetypes=[("Python files", "*.py"), ("All files", "*.*")],
                 initialdir=str(Path.home())
             )
+        except Exception:
+            # Any other unexpected error - don't show fallback, just return
+            return
         
         if filepath and filepath.endswith(".py") and Path(filepath).is_file():
             self.dropped_file = filepath
