@@ -6,6 +6,7 @@ import threading
 import queue
 import json
 from pathlib import Path
+import os
 
 # Path to the Python interpreter inside your virtual environment.
 # We use the `python` executable directly instead of the `activate` script,
@@ -13,7 +14,8 @@ from pathlib import Path
 VENV_PYTHON = "/home/govinda/projects/img-gui/venv/bin/python"
 
 MAX_HISTORY = 10
-HISTORY_FILE = Path(__file__).parent / ".script_history.json"
+# Use absolute path in home directory to ensure write access
+HISTORY_FILE = Path.home() / ".script_history.json"
 
 class ScriptRunnerApp:
     def __init__(self, root):
