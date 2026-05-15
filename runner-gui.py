@@ -253,23 +253,22 @@ class ScriptRunnerApp:
             self.dropped_file = original_file
 
     def select_file(self):
-        """Open Dolphin file manager to select a Python script."""
+        """Open KDE file selection dialog (kdialog) to select a Python script."""
         try:
-            # Use Dolphin to open file selection dialog
+            # Use kdialog for native KDE file selection dialog
             result = subprocess.run(
-                ["dolphin", "--select", str(Path.home())],
+                ["kdialog", "--getopenfilename", str(Path.home()), 
+                 "Select Python Script", "*.py"],
                 capture_output=True,
                 text=True
             )
-            # After Dolphin opens, we still need to get the file selection
-            # Fall back to standard dialog if Dolphin doesn't return selection
-            filepath = filedialog.askopenfilename(
-                title="Select Python Script",
-                filetypes=[("Python files", "*.py"), ("All files", "*.*")],
-                initialdir=str(Path.home())
-            )
+            filepath = result.stdout.strip()
+            
+            # If kdialog is not available or returns empty, fall back to tkinter dialog
+            if not filepath or result.returncode != 0:
+                raise FileNotFoundError("kdialog not available or cancelled")
         except Exception:
-            # Fallback to standard file dialog if Dolphin fails
+            # Fallback to standard tkinter file dialog
             filepath = filedialog.askopenfilename(
                 title="Select Python Script",
                 filetypes=[("Python files", "*.py"), ("All files", "*.*")],
