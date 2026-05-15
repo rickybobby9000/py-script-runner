@@ -1,0 +1,20 @@
+[Desktop Entry]
+Categories=Development;Utility;
+Comment[en_US]=Run runner-gui.py using the project virtual environment
+Comment=Run runner-gui.py using the project virtual environment
+Exec=/home/govinda/file-cabinet/workspace/projects/img-gui/venv/bin/python /home/govinda/file-cabinet/workspace/projects/img-gui/runner-gui.py
+GenericName[en_US]=
+GenericName=
+Icon=applications-python
+MimeType=
+Name[en_US]=Img GUI Runner
+Name=Img GUI Runner
+Path=/home/govinda/file-cabinet/workspace/projects/img-gui/
+StartupNotify=true
+StartupWMClass=python3
+Terminal=false
+TerminalOptions=
+Type=Application
+Version=1.0
+X-KDE-SubstituteUID=false
+X-KDE-Username=
