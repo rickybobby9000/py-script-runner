@@ -7,6 +7,8 @@ import queue
 import json
 from pathlib import Path
 import os
+import hashlib
+import re
 
 # Path to the Python interpreter inside your virtual environment.
 # We use the `python` executable directly instead of the `activate` script,
@@ -23,7 +25,7 @@ class ScriptRunnerApp:
         self.root.title(" Python Script Runner")
         self.root.geometry("650x700")
         self.dropped_file = None
-        self.history = self.load_history()  # List of recently opened script paths
+        self.history = self.load_history()  # List of tuples: (path, content_hash, display_name)
         self.selected_history_index = None
         
         # Register window close handler to save history
@@ -93,8 +95,19 @@ class ScriptRunnerApp:
             try:
                 with open(HISTORY_FILE, 'r') as f:
                     data = json.load(f)
-                    # Filter out files that no longer exist
-                    return [path for path in data if Path(path).exists()]
+                    # Handle both old format (just paths) and new format (tuples)
+                    result = []
+                    for item in data:
+                        if isinstance(item, dict):
+                            # New format: {"path": ..., "hash": ..., "display_name": ...}
+                            path = item.get("path")
+                            if path and Path(path).exists():
+                                result.append((path, item.get("hash", ""), item.get("display_name", "")))
+                        elif isinstance(item, str):
+                            # Old format: just path string
+                            if Path(item).exists():
+                                result.append((item, "", ""))
+                    return result
             except (json.JSONDecodeError, IOError):
                 pass
         return []
@@ -102,8 +115,10 @@ class ScriptRunnerApp:
     def save_history(self):
         """Save current history to JSON file."""
         try:
+            # Convert tuples to dicts for JSON serialization
+            data = [{"path": path, "hash": h, "display_name": name} for path, h, name in self.history]
             with open(HISTORY_FILE, 'w') as f:
-                json.dump(self.history, f, indent=2)
+                json.dump(data, f, indent=2)
         except IOError as e:
             print(f"Failed to save history: {e}")
 
@@ -112,16 +127,50 @@ class ScriptRunnerApp:
         self.save_history()
         self.root.destroy()
 
+    def get_file_hash(self, filepath):
+        """Calculate MD5 hash of file content."""
+        try:
+            with open(filepath, 'rb') as f:
+                return hashlib.md5(f.read()).hexdigest()
+        except Exception:
+            return ""
+    
     def add_to_history(self, filepath):
-        """Add a script to the history, keeping only the last MAX_HISTORY entries."""
-        # Remove if already exists to avoid duplicates
-        if filepath in self.history:
-            self.history.remove(filepath)
+        """Add a script to the history, keeping only the last MAX_HISTORY entries.
+        Checks content hash to allow same filename with different content."""
+        content_hash = self.get_file_hash(filepath)
+        filename = Path(filepath).name
+        
+        # Check if we already have this exact file (same path and same hash)
+        for i, (path, h, _) in enumerate(self.history):
+            if path == filepath and h == content_hash:
+                # Move to front (most recent first)
+                entry = self.history.pop(i)
+                self.history.insert(0, entry)
+                self.update_history_listbox()
+                self.save_history()
+                return
+        
+        # Check for same filename but different content - need to add suffix
+        display_name = filename
+        base_name = Path(filename).stem
+        extension = Path(filename).suffix
+        
+        # Count how many times this filename appears with different hashes
+        same_name_count = sum(1 for _, h, name in self.history 
+                             if (Path(name).stem == base_name or name == filename) and h != content_hash)
+        
+        if same_name_count > 0:
+            # Add suffix in red-friendly format
+            display_name = f"{base_name} ({same_name_count + 1}){extension}"
+        
         # Add to front (most recent first)
-        self.history.insert(0, filepath)
+        self.history.insert(0, (filepath, content_hash, display_name))
+        
         # Trim to max size
         if len(self.history) > MAX_HISTORY:
             self.history.pop()
+        
         # Update listbox display
         self.update_history_listbox()
         # Save to disk immediately
@@ -130,9 +179,15 @@ class ScriptRunnerApp:
     def update_history_listbox(self):
         """Refresh the history listbox with current history entries."""
         self.history_listbox.delete(0, tk.END)
-        for i, filepath in enumerate(self.history):
-            display_name = f"{i+1}. {Path(filepath).name}"
-            self.history_listbox.insert(tk.END, display_name)
+        for i, (filepath, content_hash, display_name) in enumerate(self.history):
+            # If no custom display name, use the filename
+            if not display_name:
+                display_name = Path(filepath).name
+            list_display = f"{i+1}. {display_name}"
+            self.history_listbox.insert(tk.END, list_display)
+            # Check if this has a suffix marker and color it red
+            if re.search(r'\s+\(\d+\)\.py$', display_name):
+                self.history_listbox.itemconfig(i, fg='red')
 
     def on_history_select(self, event):
         """Handle selection of a script from history - preview only, doesn't change selected script."""
@@ -140,10 +195,10 @@ class ScriptRunnerApp:
         if selection:
             index = selection[0]
             self.selected_history_index = index
-            selected_file = self.history[index]
+            selected_path, _, _ = self.history[index]
             # Only update output text to show preview, don't change the main selected file
             self.output_text.delete(1.0, tk.END)
-            self.output_text.insert(tk.END, f"Preview: {Path(selected_file).name}\n(Hover over or click 'Run Selected from History' to execute)\n\n")
+            self.output_text.insert(tk.END, f"Preview: {Path(selected_path).name}\n(Hover over or click 'Run Selected from History' to execute)\n\n")
             self.run_history_btn.config(state="normal")
             self.remove_history_btn.config(state="normal")
             self.clear_history_btn.config(state="normal")
@@ -158,7 +213,7 @@ class ScriptRunnerApp:
     def remove_selected_history(self):
         """Remove the selected entry from history."""
         if self.selected_history_index is not None and self.selected_history_index < len(self.history):
-            removed_file = self.history.pop(self.selected_history_index)
+            removed_path, _, removed_name = self.history.pop(self.selected_history_index)
             self.selected_history_index = None
             self.update_history_listbox()
             self.save_history()
@@ -166,7 +221,8 @@ class ScriptRunnerApp:
             self.run_history_btn.config(state="disabled")
             self.remove_history_btn.config(state="disabled")
             self.output_text.delete(1.0, tk.END)
-            self.output_text.insert(tk.END, f"Removed {Path(removed_file).name} from history.\n")
+            display_name = removed_name if removed_name else Path(removed_path).name
+            self.output_text.insert(tk.END, f"Removed {display_name} from history.\n")
             # Re-enable clear button if history still has entries
             if self.history:
                 self.clear_history_btn.config(state="normal")
@@ -190,18 +246,36 @@ class ScriptRunnerApp:
         if self.selected_history_index is not None and self.selected_history_index < len(self.history):
             # Temporarily set dropped_file to run this specific script
             original_file = self.dropped_file
-            self.dropped_file = self.history[self.selected_history_index]
+            selected_path, _, _ = self.history[self.selected_history_index]
+            self.dropped_file = selected_path
             self.run_script()
             # Restore original file selection after running
             self.dropped_file = original_file
 
     def select_file(self):
-        """Open file dialog to select a Python script."""
-        filepath = filedialog.askopenfilename(
-            title="Select Python Script",
-            filetypes=[("Python files", "*.py"), ("All files", "*.*")],
-            initialdir=str(Path.home())
-        )
+        """Open Dolphin file manager to select a Python script."""
+        try:
+            # Use Dolphin to open file selection dialog
+            result = subprocess.run(
+                ["dolphin", "--select", str(Path.home())],
+                capture_output=True,
+                text=True
+            )
+            # After Dolphin opens, we still need to get the file selection
+            # Fall back to standard dialog if Dolphin doesn't return selection
+            filepath = filedialog.askopenfilename(
+                title="Select Python Script",
+                filetypes=[("Python files", "*.py"), ("All files", "*.*")],
+                initialdir=str(Path.home())
+            )
+        except Exception:
+            # Fallback to standard file dialog if Dolphin fails
+            filepath = filedialog.askopenfilename(
+                title="Select Python Script",
+                filetypes=[("Python files", "*.py"), ("All files", "*.*")],
+                initialdir=str(Path.home())
+            )
+        
         if filepath and filepath.endswith(".py") and Path(filepath).is_file():
             self.dropped_file = filepath
             self.add_to_history(self.dropped_file)
@@ -212,8 +286,29 @@ class ScriptRunnerApp:
 
     def on_drop(self, event):
         raw = event.data.strip()
-        # Clean up path wrappers that DND sometimes adds on Linux
-        paths = [p.strip("{}") for p in raw.split()]
+        # Handle paths with spaces by properly parsing quoted paths
+        # First try to handle quoted paths (for paths with spaces)
+        paths = []
+        current_path = ""
+        in_quotes = False
+        
+        for char in raw:
+            if char == '"':
+                in_quotes = not in_quotes
+                current_path += char
+            elif char == ' ' and not in_quotes:
+                if current_path.strip():
+                    paths.append(current_path.strip().strip('"'))
+                current_path = ""
+            else:
+                current_path += char
+        
+        if current_path.strip():
+            paths.append(current_path.strip().strip('"'))
+        
+        # If no quotes were used, fall back to simple split
+        if len(paths) == 0:
+            paths = [p.strip("{}") for p in raw.split()]
 
         if len(paths) == 1 and paths[0].endswith(".py") and Path(paths[0]).is_file():
             self.dropped_file = paths[0]
