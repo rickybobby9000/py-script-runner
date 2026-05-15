@@ -1,144 +1,39 @@
-# Compiled and build artifacts
-*.pyc
+```
+# Python
 __pycache__/
-*.o
-*.obj
-*.out
-
-# Dependencies
-.venv/
-venv/
-.env
-.env.local
-*.env.*
+*.pyc
+*.pyo
+*.pyd
 
 # Logs and temp files
 *.log
 *.tmp
-*.swp
+
+# Environment
+.env
+.env.local
+*.env.*
 
 # Editors
 .vscode/
 .idea/
+
+# Dependencies
+.venv/
+venv/
+node_modules/
+
+# Build artifacts
+dist/
+build/
+target/
 
 # Coverage
 .coverage
 coverage/
 htmlcov/
 
-# Python specific
-*.pyo
-.Python
-*.so
-*.egg-info/
-dist/
-build/
-
-# MyPy
-.mypy_cache/
-# Pytest
+# Testing
 .pytest_cache/
-
-# Distribution / packaging
-.Python
-*.so
-.PyPI
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git/
 .mypy_cache/
-.pytest_cache/
-.hypothesis/
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-*.tmp
-*.temp
-*.log
-*.out
-*.pid
-*.seed
-*.prof
-*.dump
-*.heap
-*.stackdump
-*.core
-*.orig
-*.rej
-*.bak
-*.backup
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-*.tmp
-*.temp
-*.log
-*.out
-*.pid
-*.seed
-*.prof
-*.dump
-*.heap
-*.stackdump
-*.core
-*.orig
-*.rej
-*.bak
-*.backup
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-*.tmp
-*.temp
-*.log
-*.out
-*.pid
-*.seed
-*.prof
-*.dump
-*.heap
-*.stackdump
-*.core
-*.orig
-*.rej
-*.bak
-*.backup
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-*.tmp
-*.temp
-*.log
-*.out
-*.pid
-*.seed
-*.prof
-*.dump
-*.heap
-*.stackdump
-*.core
-*.orig
-*.rej
-*.bak
-*.backup
-*.swp
-*.swo
-*~
+```

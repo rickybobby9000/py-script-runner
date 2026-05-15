@@ -11,7 +11,7 @@ import os
 # Path to the Python interpreter inside your virtual environment.
 # We use the `python` executable directly instead of the `activate` script,
 # which is the standard way to run scripts inside a venv without activating it.
-VENV_PYTHON = "/home/govinda/projects/img-gui/venv/bin/python"
+VENV_PYTHON = "/home/govinda/file-cabinet/workspace/projects/img-gui/venv/bin/python"
 
 MAX_HISTORY = 10
 # Use absolute path in home directory to ensure write access
@@ -53,8 +53,21 @@ class ScriptRunnerApp:
         history_scrollbar.pack(side="right", fill="y")
         self.history_listbox.config(yscrollcommand=history_scrollbar.set)
 
+        # History buttons frame
+        self.history_btn_frame = tk.Frame(self.history_frame)
+        self.history_btn_frame.pack(fill="x", pady=(5, 0))
+        
+        self.remove_history_btn = tk.Button(self.history_btn_frame, text="🗑 Remove Entry", command=self.remove_selected_history, state="disabled", bg="#ff9800", fg="white", font=("Arial", 9))
+        self.remove_history_btn.pack(side="left", padx=(0, 5))
+        
+        self.clear_history_btn = tk.Button(self.history_btn_frame, text="🧹 Clear All", command=self.clear_history, state="disabled", bg="#f44336", fg="white", font=("Arial", 9))
+        self.clear_history_btn.pack(side="left")
+
         self.run_history_btn = tk.Button(root, text="▶ Run Selected from History", command=self.run_selected_history, state="disabled", bg="#2196F3", fg="white", font=("Arial", 10, "bold"))
         self.run_history_btn.pack(pady=10)
+        
+        # Initialize history listbox on startup
+        self.update_history_listbox()
 
         self.output_frame = tk.Frame(root)
         self.output_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -128,11 +141,53 @@ class ScriptRunnerApp:
             self.dropped_file = selected_file
             self.run_btn.config(state="normal")
             self.run_history_btn.config(state="normal")
+            self.remove_history_btn.config(state="normal")
+            self.clear_history_btn.config(state="normal")
             self.output_text.delete(1.0, tk.END)
             self.output_text.insert(tk.END, f"Ready to run: {Path(selected_file).name}\n\n")
         else:
             self.selected_history_index = None
             self.run_history_btn.config(state="disabled")
+            self.remove_history_btn.config(state="disabled")
+            # Only disable clear button if history is empty
+            if not self.history:
+                self.clear_history_btn.config(state="disabled")
+
+    def remove_selected_history(self):
+        """Remove the selected entry from history."""
+        if self.selected_history_index is not None and self.selected_history_index < len(self.history):
+            removed_file = self.history.pop(self.selected_history_index)
+            self.selected_history_index = None
+            self.update_history_listbox()
+            self.save_history()
+            # Reset selection state
+            self.dropped_file = None
+            self.file_label.config(text="No file selected", fg="gray")
+            self.run_btn.config(state="disabled")
+            self.run_history_btn.config(state="disabled")
+            self.remove_history_btn.config(state="disabled")
+            self.output_text.delete(1.0, tk.END)
+            self.output_text.insert(tk.END, f"Removed {Path(removed_file).name} from history.\n")
+            # Re-enable clear button if history still has entries
+            if self.history:
+                self.clear_history_btn.config(state="normal")
+
+    def clear_history(self):
+        """Clear all history entries."""
+        if messagebox.askyesno("Confirm Clear", "Are you sure you want to clear all history?"):
+            self.history = []
+            self.selected_history_index = None
+            self.update_history_listbox()
+            self.save_history()
+            # Reset selection state
+            self.dropped_file = None
+            self.file_label.config(text="No file selected", fg="gray")
+            self.run_btn.config(state="disabled")
+            self.run_history_btn.config(state="disabled")
+            self.remove_history_btn.config(state="disabled")
+            self.clear_history_btn.config(state="disabled")
+            self.output_text.delete(1.0, tk.END)
+            self.output_text.insert(tk.END, "History cleared.\n")
 
     def run_selected_history(self):
         """Run the script selected from history."""
