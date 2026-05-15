@@ -17,7 +17,7 @@ VENV_PYTHON = "/home/govinda/file-cabinet/workspace/projects/img-gui/venv/bin/py
 
 MAX_HISTORY = 10
 # Use absolute path in home directory to ensure write access
-HISTORY_FILE = Path.home() / ".script_history.json"
+HISTORY_FILE = Path.home() / ".py_script_runner_history.json"
 
 class ScriptRunnerApp:
     def __init__(self, root):
