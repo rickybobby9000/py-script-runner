@@ -13,7 +13,7 @@ import re
 # Path to the Python interpreter inside your virtual environment.
 # We use the `python` executable directly instead of the `activate` script,
 # which is the standard way to run scripts inside a venv without activating it.
-VENV_PYTHON = "/home/govinda/file-cabinet/workspace/projects/img-gui/venv/bin/python"
+VENV_PYTHON = "~/file-cabinet/workspace/projects/img-gui/venv/bin/python"
 
 MAX_HISTORY = 10
 # Use absolute path in home directory to ensure write access
