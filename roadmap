@@ -1,0 +1,13 @@
+- Fix font on buttons so it is never grey and always readable.
+- Add options to change the venv which the script runs from:
+    Default to use venv from the directory the selected script is contained in, also a button to set to the script containing directory. Also have a field to type a venv manually. Add a list of recently useds venvs and a list of favorites. 
+    Also a file browser for venv selection. Add option to set default venv from selection. Info about current venv, such as installed packages etc.
+- File browser panel with horizontal tree and button to retract or expand folders. List of python files in selected directory.
+- List of python files in same directory as selected script. List of directories holding recently used scripts. List of favorite directories.
+- Text preview Panel to the right of main UI area, edit button to edit the script and run button above text editor to test edits. also next to the run button will be a save button 
+  (with pop up confirmation - pop up will have option save, cancel, or save as) and a save as button.
+- Button for pop up diff viewer with list of recents, and two pane file browser
+- Checkbox for full verbose output
+- Checkbox for logging
+- "View Logs" button next to the logging checkbox
+- Right click menu for scripts in lists and file browsers
